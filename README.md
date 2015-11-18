@@ -1,5 +1,11 @@
 docker-gen
 =====
+#meosch/docker-gen fork
+I forked this project only to add information on how to configure it with dnsmasq. I have added a folder **dnsmasq-configuration** with this info. See the **dnsmasq_with_network-manager_for_docker.md** file for more info.
+
+I am still using the original project container. The original project documentation follows.
+***
+
 
 ![latest 0.4.3](https://img.shields.io/badge/latest-0.4.3-green.svg?style=flat)
 [![Build Status](https://travis-ci.org/jwilder/docker-gen.svg?branch=master)](https://travis-ci.org/jwilder/docker-gen)
