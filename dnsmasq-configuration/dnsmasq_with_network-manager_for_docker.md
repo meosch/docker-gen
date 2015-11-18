@@ -1,6 +1,10 @@
 # dnsmasq (Network Manager) for Docker containers 
 ## Background
 I trying to get this dnsmasq to work with docker I tried several methods.  In the **dnsmasq_wrapper_alternative** folder is one is based on the one found here: [Using Dnsmasq with Ubuntu for VM web application testing](https://gist.github.com/magnetikonline/6236150).
+
+## Setup
+Host computer is running Ubuntu 14.04.
+
 ## Using a configuration file
 Using information from a comments that  [Bozzie4](https://gist.github.com/Bozzie4)  and [harish2704](https://gist.github.com/harish2704) made to [magnetikonline](https://gist.github.com/magnetikonline) gist. I removed all the options that I could and put them in configuration file to allow me to override the hardcoded Network Manager dnsmasq configuration.
 
@@ -38,6 +42,8 @@ Also see the **docker-gen.conf** file from the same project for an example of a 
 
 ## Docker Configuration
 To enable the containers to use the host computers DNS provided by dnsmasq it is adviseable to set the IP address for the pesudo network adapter **docker0** to **172.17.42.1** and also set the DNS server to use for lookups to the same. Details follow in the installation section.
+
+**Note:** For Ubuntu 15.04 the place to configuration for Docker has changed. See [Setting Docker’s DOCKER_OPTS on Ubuntu 15.04](http://blog.benhall.me.uk/2015/07/setting-dockers-docker_opts-on-ubuntu-15-04/)
 
 ## Installation
 * Copy the **dnsmasq.conf** in this folder to **/etc/NetworkManager/dnsmasq.d/dnsmasq.conf** (from this folder run) ``cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf``
