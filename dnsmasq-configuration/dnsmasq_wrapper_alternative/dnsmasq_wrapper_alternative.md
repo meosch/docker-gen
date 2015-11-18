@@ -4,7 +4,7 @@ I trying to get this dnsmasq to work with docker I tried several methods.  This 
 ## Previous Work
 [magnetikonline](https://gist.github.com/magnetikonline) used a wrapper script to parse out options sent to dnsmasq.
 ## Using a configuration file
-I took this a step further using informationfrom a comments that  [Bozzie4](https://gist.github.com/Bozzie4)  and [harish2704](https://gist.github.com/harish2704) made to [magnetikonline](https://gist.github.com/magnetikonline) gist. I removed all the options that I could and put them in configuration file to allow me to easier alter the configuration.
+I took this a step further using information from a comments that  [Bozzie4](https://gist.github.com/Bozzie4)  and [harish2704](https://gist.github.com/harish2704) made to [magnetikonline](https://gist.github.com/magnetikonline) gist. I removed all the options that I could and put them in configuration file to allow me to easier alter the configuration.
 ## The Problem
 The problem I found with using a wrapper script is that if Network Manager was **restarted**  to get new dns entries from new containers that dnsmasq was not restarted and using **stop** with Network Manager only stopped Network Manager and not dnsmasq.bin (what the dnsmasq binary was renamed).
 ## The Issue
