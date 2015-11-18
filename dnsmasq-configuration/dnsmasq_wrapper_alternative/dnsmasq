@@ -1,0 +1,8 @@
+#!/bin/bash
+DNSMASQ_BIN=/usr/sbin/dnsmasq.bin
+DNSMASQ_CONF=/etc/NetworkManager/dnsmasq.d/dnsmasq.conf
+
+## run dnsmasq
+exec $DNSMASQ_BIN --conf-file=$DNSMASQ_CONF --keep-in-foreground --pid-file=/run/sendsigs.omit.d/network-manager.dnsmasq.pid
+
+
