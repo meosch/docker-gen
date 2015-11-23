@@ -1,6 +1,6 @@
 # dnsmasq (Network Manager) for Docker containers 
 ## Background
-I trying to get this dnsmasq to work with docker I tried several methods.  In the **dnsmasq_wrapper_alternative** folder is one is based on the one found here: [Using Dnsmasq with Ubuntu for VM web application testing](https://gist.github.com/magnetikonline/6236150).
+In trying to get this dnsmasq to work with docker I tried several methods.  In the **dnsmasq_wrapper_alternative** folder is one is based on the one found here: [Using Dnsmasq with Ubuntu for VM web application testing](https://gist.github.com/magnetikonline/6236150).
 
 ## Setup
 Host computer is running Ubuntu 14.04.
