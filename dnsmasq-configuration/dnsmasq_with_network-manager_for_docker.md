@@ -50,8 +50,9 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 * Restart Network Manager with ``sudo restart network-manager``
 * Copy **docker** to **/etc/default/docker** or add these two lines to your current **/etc/default/docker** file:
 
-    **# Always use the same ip address and also use it for dns
-    DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"**
+    **# Always use the same ip address and also use it for dns**
+
+    **DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"**
 
 * Restart Docker with ``sudo restart docker``
 
