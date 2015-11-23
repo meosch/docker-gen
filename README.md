@@ -1,7 +1,7 @@
 docker-gen
 =====
 #meosch/docker-gen fork
-I forked this project only to add information on how to configure it with dnsmasq. I have added a folder **dnsmasq-configuration** with this info. See the **dnsmasq_with_network-manager_for_docker.md** file for more info.
+I forked this project only to add information on how to configure it with dnsmasq. I have added a folder [**dnsmasq-configuration**](dnsmasq-configuration) with this info. See the [**dnsmasq_with_network-manager_for_docker.md**](dnsmasq-configuration/dnsmasq_with_network-manager_for_docker.md) file for more info.
 
 I am still using the original project container. The original project documentation follows.
 ***
