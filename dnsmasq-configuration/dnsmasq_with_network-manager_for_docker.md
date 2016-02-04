@@ -60,4 +60,4 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 As you bring up new containers or restart them you will need to get dnsmasq to reload the 
 
 ## Docker Container access from other computers
-If you need to access to your docker containers from other computers you will need use the dnsmasq wrapper method.
+If you need to access to your docker containers from other computers you will need use the dnsmasq wrapper method. See **dnsmasq_wrapper_alternative.md**  in the **dnsmasq_wrapper_alternative** folder.
