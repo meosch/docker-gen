@@ -11,7 +11,7 @@ Using information from a comments that  [Bozzie4](https://gist.github.com/Bozzie
 ## The Issue
 I have not found a way to override the hardcoded **--listen-address=127.0.1.1** that Network Manager sends to dnsmasq. This means that all other IP addresses that you want dnsmasq to listen on must be specifically given in the configuration. 
 
-Using the alternative wrapper methody it is possible to use a configuration without any **--listen-address=** line and have dnsmasq listen on all IP adresses. 
+Using the alternative wrapper method it is possible to use a configuration without any **--listen-address=** line and have dnsmasq listen on all IP adresses. 
 
 ## Almost defalut docker0 interface IP address
 I have included in the configuration file the line:
