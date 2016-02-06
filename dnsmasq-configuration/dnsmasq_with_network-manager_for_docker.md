@@ -30,7 +30,7 @@ The **dnsmasq.tmpl** in the **templates** folder will create a dns host file for
 - ``"/var/run/docker.sock:/tmp/docker.sock"``
 - ``"~/units/dockergen/:/etc/docker-gen/templates"`` **- docker-gen templates**
 - ``"./docker-gen.conf:/etc/docker-gen/conf.d/docker-gen.conf"`` **- docker-gen configuration file**
-- ``"/tmp/dockerhosts:/tmp/dockerhosts"`` **- where the dnsmasq hostname files will be created**
+- ``"/tmp/dockerhosts:/var/tmp/dockerhosts"`` **- where the dnsmasq hostname files will be created**
 
 ### Command to run
 We can override the run command for the docker-gen container by adding this line to our docker-compose.yml. Her we are telling the container to use our configuration file that we mounted above.
@@ -50,9 +50,15 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 * Restart Network Manager with ``sudo restart network-manager``
 * Copy **docker** to **/etc/default/docker** or add these two lines to your current **/etc/default/docker** file:
 
+
 <pre>
     <strong># Always use the same ip address and also use it for dns
     DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"</strong></pre>
+* Create the directory and empty files for dnsmasq to use for configuration when docker-gen has not yet mount. Otherwise dnsmasq will complain that the configuration files do not exist, not start and break your networking.
+<code>mkdir /var/tmp/dockerhosts
+touch /var/tmp/dockerhosts/docker
+touch /var/tmp/dockerhosts/dockerhosts
+</code>
 
 * Restart Docker with ``sudo restart docker``
 
