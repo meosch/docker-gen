@@ -14,9 +14,10 @@ I have not found a way to override the hardcoded **--listen-address=127.0.1.1** 
 Using the alternative wrapper method it is possible to use a configuration without any **--listen-address=** line and have dnsmasq listen on all IP adresses. 
 
 ## Almost default docker0 interface IP address
-I have included in the configuration file the line:
-`listen-address=172.17.42.1` If this address is not in use on your computer Docker will use it with the psuedo network adapter **docker0**. 
-This will allow your containers to use this ip addres as a dns server. 
+I have included in the Docker configuration file (/etc/default/docker) the line `listen-address=172.17.42.1`
+
+If this IP address is not in use on your computer Docker will use it with the psuedo network adapter **docker0**. 
+This will allow your containers to use this ip addres as a dns server.  More details below in the installation section on configuring this.
 
 ## DNS for .docker
 The **dockerhostdns.tmpl** in the **templates** folder will configure the almost default ip address of 172.17.42.1 as the destination for all **.docker** hostnames 
@@ -31,10 +32,19 @@ The **dnsmasq.tmpl** in the **templates** folder will create a dns host file for
 - `"~/units/dockergen/:/etc/docker-gen/templates"` **- docker-gen templates**
 - `"./docker-gen.conf:/etc/docker-gen/conf.d/docker-gen.conf"` **- docker-gen configuration file**
 - `"/var/tmp/dockerhosts:/var/tmp/dockerhosts"` **- where the dnsmasq hostname files will be created**
+```
+volumes:
+    - "/var/run/docker.sock:/tmp/docker.sock"
+    - "~/units/dockergen/:/etc/docker-gen/templates"
+    - "./docker-gen.conf:/etc/docker-gen/conf.d/docker-gen.conf"
+    - "/var/tmp/dockerhosts:/var/tmp/dockerhosts"
+```
 
 ### Command to run
 We can override the run command for the docker-gen container by adding this line to our docker-compose.yml. Her we are telling the container to use our configuration file that we mounted above.
- ```command: -config /etc/docker-gen/conf.d/docker-gen.conf```
+```
+command: -config /etc/docker-gen/conf.d/docker-gen.conf
+```
 
 ### More Info
 See the [docker-compose-localdevmeos](https://github.com/meosch/docker-compose-localdevmeos) project for more info. Specifically the **dockergen:** container **volumes:**, **command:** sections of the **docker-compose_all_containers.yml** file.
@@ -49,36 +59,48 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 ### dnsmasq
 * Copy the **dnsmasq.conf** in this folder to **/etc/NetworkManager/dnsmasq.d/dnsmasq.conf** (from this folder run) 
 
-```cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf```
+```
+cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf
+```
 
 * Create links to the dnsmasq host files that docker-gen will create with:
 
-```sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts
-sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker ```
+```
+sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts
+sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker
+```
 
 * Create the directory and empty files for dnsmasq to use for configuration when docker-gen has not yet mount. Otherwise dnsmasq will complain that the configuration files do not exist, not start and break your networking.
-```mkdir /var/tmp/dockerhosts
+```
+mkdir /var/tmp/dockerhosts
 touch /var/tmp/dockerhosts/docker
-touch /var/tmp/dockerhosts/dockerhosts```
+touch /var/tmp/dockerhosts/dockerhosts
+```
 
 * Restart Network Manager with 
-```sudo restart network-manager```
+```
+sudo restart network-manager
+```
 
 ### docker
 * Copy **docker** to **/etc/default/docker** (if you don't have this file) or add these two lines to your current **/etc/default/docker** file:
 
-
-<pre>
-    <strong># Always use the same ip address and also use it for dns
-    DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"</strong></pre>
+```
+# Always use the same ip address and also use it for dns
+DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"
+```
 
 
 * Restart Docker with
-`sudo restart docker`
+```
+sudo restart docker
+```
 
 ## Accessing new containers
 As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with
-`sudo restart network-manager`
+```
+sudo restart network-manager
+```
 
 ## Docker Container access from other computers
 If you need to access to your docker containers from other computers you will need use the dnsmasq wrapper method. See **dnsmasq_wrapper_alternative.md**  in the **dnsmasq_wrapper_alternative** folder.
