@@ -47,16 +47,23 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 
 ## Installation
 ### dnsmasq
-* Copy the **dnsmasq.conf** in this folder to **/etc/NetworkManager/dnsmasq.d/dnsmasq.conf** (from this folder run) ``cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf``
+* Copy the **dnsmasq.conf** in this folder to **/etc/NetworkManager/dnsmasq.d/dnsmasq.conf** (from this folder run) 
+
+``cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf``
+
 * Create links to the dnsmasq host files that docker-gen will create with:
-<code>sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts
-sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker</code>
+
+``sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts``
+``sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker ``
+
 * Create the directory and empty files for dnsmasq to use for configuration when docker-gen has not yet mount. Otherwise dnsmasq will complain that the configuration files do not exist, not start and break your networking.
-<code>mkdir /var/tmp/dockerhosts
-touch /var/tmp/dockerhosts/docker
-touch /var/tmp/dockerhosts/dockerhosts
-</code>
-* Restart Network Manager with ``sudo restart network-manager``
+``mkdir /var/tmp/dockerhosts``
+``touch /var/tmp/dockerhosts/docker``
+``touch /var/tmp/dockerhosts/dockerhosts``
+
+* Restart Network Manager with 
+``sudo restart network-manager``
+
 ### docker
 * Copy **docker** to **/etc/default/docker**  if you don't have this file or add these two lines to your current **/etc/default/docker** file:
 
