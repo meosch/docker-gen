@@ -32,7 +32,7 @@ The **dnsmasq.tmpl** in the **templates** folder will create a dns host file for
 - `"~/units/dockergen/:/etc/docker-gen/templates"` **- docker-gen templates**
 - `"./docker-gen.conf:/etc/docker-gen/conf.d/docker-gen.conf"` **- docker-gen configuration file**
 - `"/var/tmp/dockerhosts:/var/tmp/dockerhosts"` **- where the dnsmasq hostname files will be created**
-```
+```yaml
 volumes:
     - "/var/run/docker.sock:/tmp/docker.sock"
     - "~/units/dockergen/:/etc/docker-gen/templates"
@@ -42,7 +42,7 @@ volumes:
 
 ### Command to run
 We can override the run command for the docker-gen container by adding this line to our docker-compose.yml. Her we are telling the container to use our configuration file that we mounted above.
-```
+```yaml
 command: -config /etc/docker-gen/conf.d/docker-gen.conf
 ```
 
@@ -59,46 +59,46 @@ To enable the containers to use the host computers DNS provided by dnsmasq it is
 ### dnsmasq
 * Copy the **dnsmasq.conf** in this folder to **/etc/NetworkManager/dnsmasq.d/dnsmasq.conf** (from this folder run) 
 
-```
+```bash
 cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf
 ```
 
 * Create links to the dnsmasq host files that docker-gen will create with:
 
-```
+```bash
 sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts
 sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker
 ```
 
 * Create the directory and empty files for dnsmasq to use for configuration when docker-gen has not yet mount. Otherwise dnsmasq will complain that the configuration files do not exist, not start and break your networking.
-```
+```bash
 mkdir /var/tmp/dockerhosts
 touch /var/tmp/dockerhosts/docker
 touch /var/tmp/dockerhosts/dockerhosts
 ```
 
 * Restart Network Manager with 
-```
+```bash
 sudo restart network-manager
 ```
 
 ### docker
 * Copy **docker** to **/etc/default/docker** (if you don't have this file) or add these two lines to your current **/etc/default/docker** file:
 
-```
+```bash
 # Always use the same ip address and also use it for dns
 DOCKER_OPTS="--bip=172.17.42.1/24 --dns=172.17.42.1"
 ```
 
 
 * Restart Docker with
-```
+```bash
 sudo restart docker
 ```
 
 ## Accessing new containers
 As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with
-```
+```bash
 sudo restart network-manager
 ```
 
