@@ -13,7 +13,7 @@ I have not found a way to override the hardcoded **--listen-address=127.0.1.1** 
 
 Using the alternative wrapper method it is possible to use a configuration without any **--listen-address=** line and have dnsmasq listen on all IP adresses. 
 
-## Almost defalut docker0 interface IP address
+## Almost default docker0 interface IP address
 I have included in the configuration file the line:
 ``listen-address=172.17.42.1`` If this address is not in use on your computer Docker will use it with the psuedo network adapter **docker0**. 
 This will allow your containers to use this ip addres as a dns server. 
