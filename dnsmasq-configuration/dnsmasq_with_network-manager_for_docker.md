@@ -30,7 +30,7 @@ The **dnsmasq.tmpl** in the **templates** folder will create a dns host file for
 - ``"/var/run/docker.sock:/tmp/docker.sock"``
 - ``"~/units/dockergen/:/etc/docker-gen/templates"`` **- docker-gen templates**
 - ``"./docker-gen.conf:/etc/docker-gen/conf.d/docker-gen.conf"`` **- docker-gen configuration file**
-- ``"/tmp/dockerhosts:/var/tmp/dockerhosts"`` **- where the dnsmasq hostname files will be created**
+- ``"/var/tmp/dockerhosts:/var/tmp/dockerhosts"`` **- where the dnsmasq hostname files will be created**
 
 ### Command to run
 We can override the run command for the docker-gen container by adding this line to our docker-compose.yml. Her we are telling the container to use our configuration file that we mounted above.
