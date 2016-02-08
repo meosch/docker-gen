@@ -141,14 +141,15 @@ sudo restart network-manager
 I am not sure this section is still needed.
 
 ## Troubleshooting
-The following commands may come in handy while trouble shooting. 
-Restart docker `sudo restart docker` (note this will fail if docker is not running.)
-Start docker `sudo start docker`
-Restart Network Manager `sudo restart network-manager`
-List current DNS server being used `less /etc/resolv.conf`
-Tail  follow syslog for all Network Manager entries `tail -n 2000 -f /var/log/syslog |grep NetworkManager` (also gettting the last 2000 lines)
-Tail follow syslog for all dnsmasq entries `tail -n 2000 -f /var/log/syslog |grep dnsmasq` (also gettting the last 2000 lines)
-Manually add dnsmasq namesever to resolvconf `echo nameserver 127.0.1.1 | sudo resolvconf -a lo.dnsmasq` (disappears on next network change)
+The following commands may come in handy while troubleshooting.
+
+* Restart docker `sudo restart docker` (note this will fail if docker is not running.)
+* Start docker `sudo start docker`
+* Restart Network Manager `sudo restart network-manager`
+* List current DNS server being used `less /etc/resolv.conf`
+* Tail  follow syslog for all Network Manager entries `tail -n 2000 -f /var/log/syslog |grep NetworkManager` (also gettting the last 2000 lines)
+* Tail follow syslog for all dnsmasq entries `tail -n 2000 -f /var/log/syslog |grep dnsmasq` (also gettting the last 2000 lines)
+* Manually add dnsmasq namesever to resolvconf `echo nameserver 127.0.1.1 | sudo resolvconf -a lo.dnsmasq` (disappears on next network change)
 
 
 ## Docker Container access from other computers
