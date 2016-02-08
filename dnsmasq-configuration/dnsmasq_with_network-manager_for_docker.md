@@ -1,6 +1,6 @@
 # dnsmasq (Network Manager) for Docker containers 
 ## Background
-In trying to get this dnsmasq to work with docker I tried several methods.  In the **dnsmasq_wrapper_alternative** folder is one is based on the one found here: [Using Dnsmasq with Ubuntu for VM web application testing](https://gist.github.com/magnetikonline/6236150).  Currently this works as long as you have an active network connection that is managed by Network Manager. A fix for those times that you do not have a network connection is on the todo list.
+In trying to get this dnsmasq to work with docker I tried several methods.  In the **dnsmasq_wrapper_alternative** folder is one is based on the one found here: [Using Dnsmasq with Ubuntu for VM web application testing](https://gist.github.com/magnetikonline/6236150).  This should also work even when you do not have a network connection.
 
 ## Setup
 Host computer is running Ubuntu 14.04.3 LTS , Trusty.
@@ -129,6 +129,7 @@ start on (filesystem and net-device-up IFACE!=lo)
 sudo restart docker
 ```
 
+
 ## Accessing new containers
 As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with
 ```bash
@@ -138,5 +139,4 @@ sudo restart network-manager
 ## Docker Container access from other computers
 If you need to access to your docker containers from other computers you will need use the dnsmasq wrapper method. See **dnsmasq_wrapper_alternative.md**  in the **dnsmasq_wrapper_alternative** folder.
 
-## Todo
-* Currently if you do not have a network connection via Network Manager  that is active dnsmasq does not work or return an answer. Find a way to setup a dummy network adapter that is managed by Network Manger to use in this cases.
+
