@@ -110,9 +110,8 @@ This sets the ip addres for the pseudo network interface **docker0** and also se
 
 * As the super user edit [/etc/init/docker.conf](file:///etc/init/docker.conf) to have Docker start when the loopback interface (**lo**) is up. Remove the exclamation point(**!**) from line 3.
 
-<code><pre>
-start on (local-filesystems and net-device-up IFACE<mark><b>!</mark></b>=lo)
-</pre></code>
+<pre><code>start on (local-filesystems and net-device-up IFACE<mark><b>!</mark></b>=lo)
+</code></pre>
 
 to
 ```bash
