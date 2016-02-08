@@ -117,12 +117,12 @@ to
 ```bash
 start on (local-filesystems and net-device-up IFACE=lo)
 ```
-#### Note:
+> **Note:** Docker, Upstart **start on** and file systems
  I just ran updates and saw that the Docker Upstart script ([/etc/init/docker.conf](file:///etc/init/docker.conf)) changed the **start on** line. The default line is now:
 ```bash
 start on (filesystem and net-device-up IFACE!=lo)
 ```
-For the current setup I am proposing with docker-gen and dnsmasq that allows you to work with only the loopback interface I would recommend using **local-filesystems**  instead of **filesystems** which would include network file systems as this will also delay docker from starting and cause dnsmasq startup to fail.
+>For the current setup I am proposing with docker-gen and dnsmasq that allows you to work with only the loopback interface I would recommend using **local-filesystems**  instead of **filesystems** which would include network file systems as this will also delay docker from starting and cause dnsmasq startup to fail.
 
 * Restart Docker with
 ```bash
