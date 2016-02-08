@@ -129,12 +129,27 @@ start on (filesystem and net-device-up IFACE!=lo)
 sudo restart docker
 ```
 
+## Be patient with dnsmasq
+After starting new containers it can take Network Manager and dnsmasq some time to update the dns records. This could be up to but not more than 1 minute. In realtity it is probably closer to 30 to 40 seconds.
 
-## Accessing new containers
-As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with
+## ~~Accessing new containers~~
+~~As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with~~
+
 ```bash
 sudo restart network-manager
 ```
+I am not sure this section is still needed.
+
+## Troubleshooting
+The following commands may come in handy while trouble shooting. 
+Restart docker `sudo restart docker` (note this will fail if docker is not running.)
+Start docker `sudo start docker`
+Restart Network Manager `sudo restart network-manager`
+List current DNS server being used `less /etc/resolv.conf`
+Tail  follow syslog for all Network Manager entries `tail -n 2000 -f /var/log/syslog |grep NetworkManager` (also gettting the last 2000 lines)
+Tail follow syslog for all dnsmasq entries `tail -n 2000 -f /var/log/syslog |grep dnsmasq` (also gettting the last 2000 lines)
+Manually add dnsmasq namesever to resolvconf `echo nameserver 127.0.1.1 | sudo resolvconf -a lo.dnsmasq` (disappears on next network change)
+
 
 ## Docker Container access from other computers
 If you need to access to your docker containers from other computers you will need use the dnsmasq wrapper method. See **dnsmasq_wrapper_alternative.md**  in the **dnsmasq_wrapper_alternative** folder.
