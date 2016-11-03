@@ -7,7 +7,7 @@ I am still using the original project container. The original project documentat
 ***
 
 
-![latest 0.4.3](https://img.shields.io/badge/latest-0.4.3-green.svg?style=flat)
+![latest 0.7.3](https://img.shields.io/badge/latest-0.7.3-green.svg?style=flat)
 [![Build Status](https://travis-ci.org/jwilder/docker-gen.svg?branch=master)](https://travis-ci.org/jwilder/docker-gen)
 ![License MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat)
 
@@ -31,16 +31,17 @@ There are three common ways to run docker-gen:
 
 #### Host Install
 
-Linux/OSX binaries for release [0.4.3](https://github.com/jwilder/docker-gen/releases)
+Linux/OSX binaries for release [0.7.3](https://github.com/jwilder/docker-gen/releases)
 
-* [amd64](https://github.com/jwilder/docker-gen/releases/download/0.4.3/docker-gen-linux-amd64-0.4.3.tar.gz)
-* [i386](https://github.com/jwilder/docker-gen/releases/download/0.4.3/docker-gen-linux-i386-0.4.3.tar.gz)
+* [amd64](https://github.com/jwilder/docker-gen/releases/download/0.7.3/docker-gen-linux-amd64-0.7.3.tar.gz)
+* [i386](https://github.com/jwilder/docker-gen/releases/download/0.7.3/docker-gen-linux-i386-0.7.3.tar.gz)
+* [alpine-linux](https://github.com/jwilder/docker-gen/releases/download/0.7.3/docker-gen-alpine-linux-amd64-0.7.3.tar.gz)
 
 Download the version you need, untar, and install to your PATH.
 
 ```
-$ wget https://github.com/jwilder/docker-gen/releases/download/0.4.3/docker-gen-linux-amd64-0.4.3.tar.gz
-$ tar xvzf docker-gen-linux-amd64-0.4.3.tar.gz
+$ wget https://github.com/jwilder/docker-gen/releases/download/0.7.3/docker-gen-linux-amd64-0.7.3.tar.gz
+$ tar xvzf docker-gen-linux-amd64-0.7.3.tar.gz
 $ ./docker-gen
 ```
 
@@ -98,12 +99,16 @@ Options:
       keep blank lines in the output file
   -notify restart xyz
       run command after template is regenerated (e.g restart xyz)
+  -notify-output
+      log the output(stdout/stderr) of notify command
   -notify-sighup docker kill -s HUP container-ID
       send HUP signal to container.  Equivalent to docker kill -s HUP container-ID
   -only-exposed
       only include containers with exposed ports
   -only-published
       only include containers with published ports (implies -only-exposed)
+  -include-stopped
+      include stopped containers
   -tlscacert string
       path to TLS CA certificate file (default "/Users/jason/.docker/machine/machines/default/ca.pem")
   -tlscert string
@@ -116,6 +121,8 @@ Options:
       show version
   -watch
       watch for container changes
+  -wait
+      minimum (and/or maximum) duration to wait after each container change before triggering
 
 Arguments:
   template - path to a template to generate
@@ -156,6 +163,9 @@ path to a template to generate
 watch = true
 watch for container changes
 
+wait = "500ms:2s"
+debounce changes with a min:max duration. Only applicable if watch = true
+
 
 [config.NotifyContainers]
 Starts a notify container section
@@ -183,9 +193,10 @@ watch = true
 template = "/etc/docker-gen/templates/nginx.tmpl"
 dest = "/etc/nginx/conf.d/default.conf"
 watch = true
+wait = "500ms:2s"
 
 [config.NotifyContainers]
-nginx = 1  # 1 is a signal number to be sent; here SIGINT
+nginx = 1  # 1 is a signal number to be sent; here SIGHUP
 e75a60548dc9 = 1 # a key can be either container name (nginx) or ID
 ```
 
@@ -201,31 +212,59 @@ Within the templates, the object emitted by docker-gen will be a structure consi
 
 ```go
 type RuntimeContainer struct {
-    ID        string
-    Addresses []Address
-    Gateway   string
-    Name      string
-    Hostname  string
-    Image     DockerImage
-    Env       map[string]string
-    Volumes   map[string]Volume
-    Node      SwarmNode
-    Labels    map[string]string
-    IP        string
+    ID           string
+    Addresses    []Address
+    Networks     []Network
+    Gateway      string
+    Name         string
+    Hostname     string
+    Image        DockerImage
+    Env          map[string]string
+    Volumes      map[string]Volume
+    Node         SwarmNode
+    Labels       map[string]string
+    IP           string
+    IP6LinkLocal string
+    IP6Global    string
+    Mounts       []Mount
+    State        State
 }
 
 type Address struct {
-    IP       string
-    Port     string
-    HostPort string
-    Proto    string
-    HostIP   string
+    IP           string
+    IP6LinkLocal string
+    IP6Global    string
+    Port         string
+    HostPort     string
+    Proto        string
+    HostIP       string
+}
+
+type Network struct {
+    IP                  string
+    Name                string
+    Gateway             string
+    EndpointID          string
+    IPv6Gateway         string
+    GlobalIPv6Address   string
+    MacAddress          string
+    GlobalIPv6PrefixLen int
+    IPPrefixLen         int
 }
 
 type DockerImage struct {
     Registry   string
     Repository string
     Tag        string
+}
+
+type Mount struct {
+  Name        string
+  Source      string
+  Destination string
+  Driver      string
+  Mode        string
+  RW          bool
 }
 
 type Volume struct {
@@ -239,6 +278,26 @@ type SwarmNode struct {
     Name    string
     Address Address
 }
+
+type State struct {
+  Running bool
+}
+
+// Accessible from the root in templates as .Docker
+type Docker struct {
+    Name                 string
+    NumContainers        int
+    NumImages            int
+    Version              string
+    ApiVersion           string
+    GoVersion            string
+    OperatingSystem      string
+    Architecture         string
+    CurrentContainerID   string
+}
+
+// Host environment variables accessible from root in templates as .Env
+
 ```
 
 For example, this is a JSON version of an emitted RuntimeContainer struct:
@@ -303,6 +362,7 @@ For example, this is a JSON version of an emitted RuntimeContainer struct:
 * *`groupBy $containers $fieldPath`*: Groups an array of `RuntimeContainer` instances based on the values of a field path expression `$fieldPath`. A field path expression is a dot-delimited list of map keys or struct member names specifying the path from container to a nested value, which must be a string. Returns a map from the value of the field path expression to an array of containers having that value. Containers that do not have a value for the field path in question are omitted.
 * *`groupByKeys $containers $fieldPath`*: Returns the same as `groupBy` but only returns the keys of the map.
 * *`groupByMulti $containers $fieldPath $sep`*: Like `groupBy`, but the string value specified by `$fieldPath` is first split by `$sep` into a list of strings. A container whose `$fieldPath` value contains a list of strings will show up in the map output under each of those strings.
+* *`groupByLabel $containers $label`*: Returns the same as `groupBy` but grouping by the given label's value.
 * *`hasPrefix $prefix $string`*: Returns whether `$prefix` is a prefix of `$string`.
 * *`hasSuffix $suffix $string`*: Returns whether `$suffix` is a suffix of `$string`.
 * *`intersect $slice1 $slice2`*: Returns the strings that exist in both string slices.
@@ -313,15 +373,19 @@ For example, this is a JSON version of an emitted RuntimeContainer struct:
 * *`replace $string $old $new $count`*: Replaces up to `$count` occurences of `$old` with `$new` in `$string`. Alias for [`strings.Replace`](http://golang.org/pkg/strings/#Replace)
 * *`sha1 $string`*: Returns the hexadecimal representation of the SHA1 hash of `$string`.
 * *`split $string $sep`*: Splits `$string` into a slice of substrings delimited by `$sep`. Alias for [`strings.Split`](http://golang.org/pkg/strings/#Split)
+* *`splitN $string $sep $count`*: Splits `$string` into a slice of substrings delimited by `$sep`, with number of substrings returned determined by `$count`. Alias for [`strings.SplitN`](https://golang.org/pkg/strings/#SplitN)
 * *`trimPrefix $prefix $string`*: If `$prefix` is a prefix of `$string`, return `$string` with `$prefix` trimmed from the beginning. Otherwise, return `$string` unchanged.
 * *`trimSuffix $suffix $string`*: If `$suffix` is a suffix of `$string`, return `$string` with `$suffix` trimmed from the end. Otherwise, return `$string` unchanged.
 * *`trim $string`*: Removes whitespace from both sides of `$string`.
+* *`when $condition $trueValue $falseValue`*: Returns the `$trueValue` when the `$condition` is `true` and the `$falseValue` otherwise
 * *`where $items $fieldPath $value`*: Filters an array or slice based on the values of a field path expression `$fieldPath`. A field path expression is a dot-delimited list of map keys or struct member names specifying the path from container to a nested value. Returns an array of items having that value.
 * *`whereExist $items $fieldPath`*: Like `where`, but returns only items where `$fieldPath` exists (is not nil).
 * *`whereNotExist $items $fieldPath`*: Like `where`, but returns only items where `$fieldPath` does not exist (is nil).
 * *`whereAny $items $fieldPath $sep $values`*: Like `where`, but the string value specified by `$fieldPath` is first split by `$sep` into a list of strings. The comparison value is a string slice with possible matches. Returns items which OR intersect these values.
 * *`whereAll $items $fieldPath $sep $values`*: Like `whereAny`, except all `$values` must exist in the `$fieldPath`.
-* *`when $condition $trueValue $falseValue`*: Returns the `$trueValue` when the `$condition` is `true` and the `$falseValue` otherwise
+* *`whereLabelExists $containers $label`*: Filters a slice of containers based on the existence of the label `$label`.
+* *`whereLabelDoesNotExist $containers $label`*: Filters a slice of containers based on the non-existence of the label `$label`.
+* *`whereLabelValueMatches $containers $label $pattern`*: Filters a slice of containers based on the existence of the label `$label` with values matching the regular expression `$pattern`.
 
 ===
 
@@ -365,7 +429,7 @@ $ docker-gen -watch -notify "restart fluentd" templates/fluentd.tmpl /etc/fluent
 #### Service Discovery in Etcd
 
 
-This template is an example of generating a script that is then executed.  This tempalte generates
+This template is an example of generating a script that is then executed.  This template generates
 a python script that is then executed which register containers in Etcd using it's HTTP API.
 
 ```

@@ -1,4 +1,4 @@
-package main
+package dockergen
 
 import (
 	"bytes"
@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -50,7 +51,7 @@ func getArrayValues(funcName string, entries interface{}) (*reflect.Value, error
 }
 
 // Generalized groupBy function
-func generalizedGroupBy(funcName string, entries interface{}, key string, addEntry func(map[string][]interface{}, interface{}, interface{})) (map[string][]interface{}, error) {
+func generalizedGroupBy(funcName string, entries interface{}, getValue func(interface{}) (interface{}, error), addEntry func(map[string][]interface{}, interface{}, interface{})) (map[string][]interface{}, error) {
 	entriesVal, err := getArrayValues(funcName, entries)
 
 	if err != nil {
@@ -60,7 +61,10 @@ func generalizedGroupBy(funcName string, entries interface{}, key string, addEnt
 	groups := make(map[string][]interface{})
 	for i := 0; i < entriesVal.Len(); i++ {
 		v := reflect.Indirect(entriesVal.Index(i)).Interface()
-		value := deepGet(v, key)
+		value, err := getValue(v)
+		if err != nil {
+			return nil, err
+		}
 		if value != nil {
 			addEntry(groups, value, v)
 		}
@@ -68,8 +72,15 @@ func generalizedGroupBy(funcName string, entries interface{}, key string, addEnt
 	return groups, nil
 }
 
+func generalizedGroupByKey(funcName string, entries interface{}, key string, addEntry func(map[string][]interface{}, interface{}, interface{})) (map[string][]interface{}, error) {
+	getKey := func(v interface{}) (interface{}, error) {
+		return deepGet(v, key), nil
+	}
+	return generalizedGroupBy(funcName, entries, getKey, addEntry)
+}
+
 func groupByMulti(entries interface{}, key, sep string) (map[string][]interface{}, error) {
-	return generalizedGroupBy("groupByMulti", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
+	return generalizedGroupByKey("groupByMulti", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
 		items := strings.Split(value.(string), sep)
 		for _, item := range items {
 			groups[item] = append(groups[item], v)
@@ -79,14 +90,14 @@ func groupByMulti(entries interface{}, key, sep string) (map[string][]interface{
 
 // groupBy groups a generic array or slice by the path property key
 func groupBy(entries interface{}, key string) (map[string][]interface{}, error) {
-	return generalizedGroupBy("groupBy", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
+	return generalizedGroupByKey("groupBy", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
 		groups[value.(string)] = append(groups[value.(string)], v)
 	})
 }
 
 // groupByKeys is the same as groupBy but only returns a list of keys
 func groupByKeys(entries interface{}, key string) ([]string, error) {
-	keys, err := generalizedGroupBy("groupByKeys", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
+	keys, err := generalizedGroupByKey("groupByKeys", entries, key, func(groups map[string][]interface{}, value interface{}, v interface{}) {
 		groups[value.(string)] = append(groups[value.(string)], v)
 	})
 
@@ -101,9 +112,24 @@ func groupByKeys(entries interface{}, key string) ([]string, error) {
 	return ret, nil
 }
 
+// groupByLabel is the same as groupBy but over a given label
+func groupByLabel(entries interface{}, label string) (map[string][]interface{}, error) {
+	getLabel := func(v interface{}) (interface{}, error) {
+		if container, ok := v.(RuntimeContainer); ok {
+			if value, ok := container.Labels[label]; ok {
+				return value, nil
+			}
+			return nil, nil
+		}
+		return nil, fmt.Errorf("Must pass an array or slice of RuntimeContainer to 'groupByLabel'; received %v", v)
+	}
+	return generalizedGroupBy("groupByLabel", entries, getLabel, func(groups map[string][]interface{}, value interface{}, v interface{}) {
+		groups[value.(string)] = append(groups[value.(string)], v)
+	})
+}
+
 // Generalized where function
 func generalizedWhere(funcName string, entries interface{}, key string, test func(interface{}) bool) (interface{}, error) {
-
 	entriesVal, err := getArrayValues(funcName, entries)
 
 	if err != nil {
@@ -169,6 +195,48 @@ func whereAll(entries interface{}, key, sep string, cmp []string) (interface{}, 
 	})
 }
 
+// generalized whereLabel function
+func generalizedWhereLabel(funcName string, containers Context, label string, test func(string, bool) bool) (Context, error) {
+	selection := make([]*RuntimeContainer, 0)
+
+	for i := 0; i < len(containers); i++ {
+		container := containers[i]
+
+		value, ok := container.Labels[label]
+		if test(value, ok) {
+			selection = append(selection, container)
+		}
+	}
+
+	return selection, nil
+}
+
+// selects containers that have a particular label
+func whereLabelExists(containers Context, label string) (Context, error) {
+	return generalizedWhereLabel("whereLabelExists", containers, label, func(_ string, ok bool) bool {
+		return ok
+	})
+}
+
+// selects containers that have don't have a particular label
+func whereLabelDoesNotExist(containers Context, label string) (Context, error) {
+	return generalizedWhereLabel("whereLabelDoesNotExist", containers, label, func(_ string, ok bool) bool {
+		return !ok
+	})
+}
+
+// selects containers with a particular label whose value matches a regular expression
+func whereLabelValueMatches(containers Context, label, pattern string) (Context, error) {
+	rx, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	return generalizedWhereLabel("whereLabelValueMatches", containers, label, func(value string, ok bool) bool {
+		return ok && rx.MatchString(value)
+	})
+}
+
 // hasPrefix returns whether a given string is a prefix of another string
 func hasPrefix(prefix, s string) bool {
 	return strings.HasPrefix(s, prefix)
@@ -191,7 +259,7 @@ func keys(input interface{}) (interface{}, error) {
 
 	vk := val.MapKeys()
 	k := make([]interface{}, val.Len())
-	for i, _ := range k {
+	for i := range k {
 		k[i] = vk[i].Interface()
 	}
 
@@ -300,7 +368,8 @@ func dirList(path string) ([]string, error) {
 	names := []string{}
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
-		return names, err
+		log.Printf("Template error: %v", err)
+		return names, nil
 	}
 	for _, f := range files {
 		names = append(names, f.Name())
@@ -344,58 +413,77 @@ func when(condition bool, trueValue, falseValue interface{}) interface{} {
 
 func newTemplate(name string) *template.Template {
 	tmpl := template.New(name).Funcs(template.FuncMap{
-		"closest":       arrayClosest,
-		"coalesce":      coalesce,
-		"contains":      contains,
-		"dict":          dict,
-		"dir":           dirList,
-		"exists":        exists,
-		"first":         arrayFirst,
-		"groupBy":       groupBy,
-		"groupByKeys":   groupByKeys,
-		"groupByMulti":  groupByMulti,
-		"hasPrefix":     hasPrefix,
-		"hasSuffix":     hasSuffix,
-		"json":          marshalJson,
-		"intersect":     intersect,
-		"keys":          keys,
-		"last":          arrayLast,
-		"replace":       strings.Replace,
-		"parseBool":     strconv.ParseBool,
-		"parseJson":     unmarshalJson,
-		"queryEscape":   url.QueryEscape,
-		"sha1":          hashSha1,
-		"split":         strings.Split,
-		"splitN":        strings.SplitN,
-		"trimPrefix":    trimPrefix,
-		"trimSuffix":    trimSuffix,
-		"trim":          trim,
-		"where":         where,
-		"whereExist":    whereExist,
-		"whereNotExist": whereNotExist,
-		"whereAny":      whereAny,
-		"whereAll":      whereAll,
-		"when":          when,
+		"closest":                arrayClosest,
+		"coalesce":               coalesce,
+		"contains":               contains,
+		"dict":                   dict,
+		"dir":                    dirList,
+		"exists":                 exists,
+		"first":                  arrayFirst,
+		"groupBy":                groupBy,
+		"groupByKeys":            groupByKeys,
+		"groupByMulti":           groupByMulti,
+		"groupByLabel":           groupByLabel,
+		"hasPrefix":              hasPrefix,
+		"hasSuffix":              hasSuffix,
+		"json":                   marshalJson,
+		"intersect":              intersect,
+		"keys":                   keys,
+		"last":                   arrayLast,
+		"replace":                strings.Replace,
+		"parseBool":              strconv.ParseBool,
+		"parseJson":              unmarshalJson,
+		"queryEscape":            url.QueryEscape,
+		"sha1":                   hashSha1,
+		"split":                  strings.Split,
+		"splitN":                 strings.SplitN,
+		"trimPrefix":             trimPrefix,
+		"trimSuffix":             trimSuffix,
+		"trim":                   trim,
+		"when":                   when,
+		"where":                  where,
+		"whereExist":             whereExist,
+		"whereNotExist":          whereNotExist,
+		"whereAny":               whereAny,
+		"whereAll":               whereAll,
+		"whereLabelExists":       whereLabelExists,
+		"whereLabelDoesNotExist": whereLabelDoesNotExist,
+		"whereLabelValueMatches": whereLabelValueMatches,
 	})
 	return tmpl
 }
 
-func generateFile(config Config, containers Context) bool {
+func filterRunning(config Config, containers Context) Context {
+	if config.IncludeStopped {
+		return containers
+	} else {
+		filteredContainers := Context{}
+		for _, container := range containers {
+			if container.State.Running {
+				filteredContainers = append(filteredContainers, container)
+			}
+		}
+		return filteredContainers
+	}
+}
+
+func GenerateFile(config Config, containers Context) bool {
+	filteredRunningContainers := filterRunning(config, containers)
 	filteredContainers := Context{}
 	if config.OnlyPublished {
-		for _, container := range containers {
+		for _, container := range filteredRunningContainers {
 			if len(container.PublishedAddresses()) > 0 {
 				filteredContainers = append(filteredContainers, container)
 			}
 		}
 	} else if config.OnlyExposed {
-		for _, container := range containers {
+		for _, container := range filteredRunningContainers {
 			if len(container.Addresses) > 0 {
 				filteredContainers = append(filteredContainers, container)
 			}
 		}
 	} else {
-		filteredContainers = containers
+		filteredContainers = filteredRunningContainers
 	}
 
 	contents := executeTemplate(config.Template, filteredContainers)
@@ -413,31 +501,31 @@ func generateFile(config Config, containers Context) bool {
 			os.Remove(dest.Name())
 		}()
 		if err != nil {
-			log.Fatalf("unable to create temp file: %s\n", err)
+			log.Fatalf("Cnable to create temp file: %s\n", err)
 		}
 
 		if n, err := dest.Write(contents); n != len(contents) || err != nil {
-			log.Fatalf("failed to write to temp file: wrote %d, exp %d, err=%v", n, len(contents), err)
+			log.Fatalf("Failed to write to temp file: wrote %d, exp %d, err=%v", n, len(contents), err)
 		}
 
 		oldContents := []byte{}
 		if fi, err := os.Stat(config.Dest); err == nil {
 			if err := dest.Chmod(fi.Mode()); err != nil {
-				log.Fatalf("unable to chmod temp file: %s\n", err)
+				log.Fatalf("Unable to chmod temp file: %s\n", err)
 			}
 			if err := dest.Chown(int(fi.Sys().(*syscall.Stat_t).Uid), int(fi.Sys().(*syscall.Stat_t).Gid)); err != nil {
-				log.Fatalf("unable to chown temp file: %s\n", err)
+				log.Fatalf("Unable to chown temp file: %s\n", err)
 			}
 			oldContents, err = ioutil.ReadFile(config.Dest)
 			if err != nil {
-				log.Fatalf("unable to compare current file contents: %s: %s\n", config.Dest, err)
+				log.Fatalf("Unable to compare current file contents: %s: %s\n", config.Dest, err)
 			}
 		}
 
 		if bytes.Compare(oldContents, contents) != 0 {
 			err = os.Rename(dest.Name(), config.Dest)
 			if err != nil {
-				log.Fatalf("unable to create dest file %s: %s\n", config.Dest, err)
+				log.Fatalf("Unable to create dest file %s: %s\n", config.Dest, err)
 			}
 			log.Printf("Generated '%s' from %d containers", config.Dest, len(filteredContainers))
 			return true
@@ -452,13 +540,13 @@ func generateFile(config Config, containers Context) bool {
 func executeTemplate(templatePath string, containers Context) []byte {
 	tmpl, err := newTemplate(filepath.Base(templatePath)).ParseFiles(templatePath)
 	if err != nil {
-		log.Fatalf("unable to parse template: %s", err)
+		log.Fatalf("Unable to parse template: %s", err)
 	}
 
 	buf := new(bytes.Buffer)
 	err = tmpl.ExecuteTemplate(buf, filepath.Base(templatePath), &containers)
 	if err != nil {
-		log.Fatalf("template error: %s\n", err)
+		log.Fatalf("Template error: %s\n", err)
 	}
 	return buf.Bytes()
 }

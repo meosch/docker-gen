@@ -1,4 +1,4 @@
-package main
+package dockergen
 
 import (
 	"bytes"
@@ -182,6 +182,61 @@ func TestGroupByAfterWhere(t *testing.T) {
 		t.FailNow()
 	}
 	if groups["demo2.localhost"][0].(RuntimeContainer).ID != "3" {
+		t.Fail()
+	}
+}
+
+func TestGroupByLabel(t *testing.T) {
+	containers := []*RuntimeContainer{
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.docker.compose.project": "one",
+			},
+			ID: "1",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.docker.compose.project": "two",
+			},
+			ID: "2",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.docker.compose.project": "one",
+			},
+			ID: "3",
+		},
+		&RuntimeContainer{
+			ID: "4",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.docker.compose.project": "",
+			},
+			ID: "5",
+		},
+	}
+
+	groups, err := groupByLabel(containers, "com.docker.compose.project")
+	if err != nil {
+		t.FailNow()
+	}
+
+	if len(groups) != 3 {
+		t.Fail()
+	}
+
+	if len(groups["one"]) != 2 {
+		t.Fail()
+	}
+	if len(groups[""]) != 1 {
+		t.Fail()
+	}
+
+	if len(groups["two"]) != 1 {
+		t.FailNow()
+	}
+	if groups["two"][0].(RuntimeContainer).ID != "2" {
 		t.Fail()
 	}
 }
@@ -450,6 +505,87 @@ func TestWhereRequires(t *testing.T) {
 	}
 
 	tests.run(t, "whereAll")
+}
+
+func TestWhereLabelExists(t *testing.T) {
+	containers := []*RuntimeContainer{
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.foo": "foo",
+				"com.example.bar": "bar",
+			},
+			ID: "1",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.bar": "bar",
+			},
+			ID: "2",
+		},
+	}
+
+	tests := templateTestList{
+		{`{{whereLabelExists . "com.example.foo" | len}}`, containers, `1`},
+		{`{{whereLabelExists . "com.example.bar" | len}}`, containers, `2`},
+		{`{{whereLabelExists . "com.example.baz" | len}}`, containers, `0`},
+	}
+
+	tests.run(t, "whereLabelExists")
+}
+
+func TestWhereLabelDoesNotExist(t *testing.T) {
+	containers := []*RuntimeContainer{
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.foo": "foo",
+				"com.example.bar": "bar",
+			},
+			ID: "1",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.bar": "bar",
+			},
+			ID: "2",
+		},
+	}
+
+	tests := templateTestList{
+		{`{{whereLabelDoesNotExist . "com.example.foo" | len}}`, containers, `1`},
+		{`{{whereLabelDoesNotExist . "com.example.bar" | len}}`, containers, `0`},
+		{`{{whereLabelDoesNotExist . "com.example.baz" | len}}`, containers, `2`},
+	}
+
+	tests.run(t, "whereLabelDoesNotExist")
+}
+
+func TestWhereLabelValueMatches(t *testing.T) {
+	containers := []*RuntimeContainer{
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.foo": "foo",
+				"com.example.bar": "bar",
+			},
+			ID: "1",
+		},
+		&RuntimeContainer{
+			Labels: map[string]string{
+				"com.example.bar": "BAR",
+			},
+			ID: "2",
+		},
+	}
+
+	tests := templateTestList{
+		{`{{whereLabelValueMatches . "com.example.foo" "^foo$" | len}}`, containers, `1`},
+		{`{{whereLabelValueMatches . "com.example.foo" "\\d+" | len}}`, containers, `0`},
+		{`{{whereLabelValueMatches . "com.example.bar" "^bar$" | len}}`, containers, `1`},
+		{`{{whereLabelValueMatches . "com.example.bar" "^(?i)bar$" | len}}`, containers, `2`},
+		{`{{whereLabelValueMatches . "com.example.bar" ".*" | len}}`, containers, `2`},
+		{`{{whereLabelValueMatches . "com.example.baz" ".*" | len}}`, containers, `0`},
+	}
+
+	tests.run(t, "whereLabelValueMatches")
 }
 
 func TestHasPrefix(t *testing.T) {
