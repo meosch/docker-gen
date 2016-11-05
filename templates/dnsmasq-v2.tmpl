@@ -1,0 +1,8 @@
+{{range $key, $value := .}}
+{{ $network := index $value.Networks 0 }}
+{{ $address := index $value.Addresses }}
+
+# {{ $value.Name }} ({{$value.ID}} from {{$value.Image.Repository}})
+{{ $network.IP }}	{{ $value.Name }}
+{{/* address=/{{ $value.Name }}/{{ $network.IP6Global }} */}}
+{{end}}
