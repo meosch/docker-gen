@@ -5,7 +5,8 @@
         {{ if gt $addrLen 0 }}
             {{ $address := index $container.Addresses 0 }}
         {{ end }}
-address=/{{ $host }}/{{ $address.IP }}
+# {{ $container.Name }} ({{$container.ID}} from {{$container.Image.Repository}})
+{{ $address.IP }}	{{ $host }}
     {{ end }}
 {{ end }}
 
@@ -15,5 +16,6 @@ address=/{{ $host }}/{{ $address.IP }}
     {{ if gt $addrLen 0 }}
         {{ $address := index $container.Addresses 0 }}
     {{ end }}
-address=/{{ $container.Name }}/{{ $address.IP }}
+# {{ $container.Name }} ({{$container.ID}} from {{$container.Image.Repository}})
+{{ $address.IP }}	{{ $container.Name }}
 {{ end }}
