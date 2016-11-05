@@ -83,9 +83,12 @@ cp dnsmasq.conf /etc/NetworkManager/dnsmasq.d/dnsmasq.conf
 * Create links to the dnsmasq host files that docker-gen will create with:
 
 ```bash
-sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/NetworkManager/dnsmasq.d/dockerhosts
+sudo ln -s -T /var/tmp/dockerhosts/dockerhosts /etc/dockerhosts
 sudo ln -s -T /var/tmp/dockerhosts/docker /etc/NetworkManager/dnsmasq.d/docker
 ```
+**NOTE:** In this release we use the `addn-hosts=` option for `/etc/dockerhosts` in the Networkmanager dnsmasq configuration file (`/etc/NetworkManager/dnsmasq.d/dnsmasq.conf`). This allows us to do `sudo killall -HUP dnsmasq` to have the **dockerhosts** file reloaded. Previously with the **dockerhosts** file in the dnsmasq configuration directory we needed to restart NetworkManager to get dnsmasq to reload the configuration, this of course disrupted network traffic.
+
+In the previous version (v1) the link to the `dockerhosts` file (`/var/tmp/dockerhosts/dockerhosts`) was created in the NetworkManager dnsmasq configuration directory (`/etc/NetworkManager/dnsmasq.d/dockerhosts`). This link should be deleted and a new link should be created as `/etc/dockerhosts`.
 
 * Create the directory and empty files for dnsmasq to use for configuration when docker-gen has not yet mount. Otherwise dnsmasq will complain that the configuration files do not exist, not start and break your networking.
 ```bash
@@ -130,8 +133,13 @@ start on (filesystem and net-device-up IFACE!=lo)
 sudo restart docker
 ```
 
-## Be patient with dnsmasq
-After starting new containers it can take Network Manager and dnsmasq some time to update the dns records. This could be up to but not more than 1 minute. In realtity it is probably closer to 30 to 40 seconds.
+## Be patient with Nginx
+After starting new containers it can take Nginx some time before it clears it cache. With newer versions of Nginx this delay appears to be less than before. Now it is ~5-10  seconds. Previously it could be up to but not more than 1 minute. In reality was probably closer to 30 to 40 seconds.
+
+## DNSmasq - no autoreload
+The developers of dnsmasq are working on an inotify solution that in the future could automatically reload additional host files when their contents change, but for now it need to be done manually with:
+`sudo killall -HUP dnsmasq`
+This reload is not needed for Nginx and development website can be reach without the reload. The reload is needed to reach containers via their dockercontainer name from the host computer.
 
 ## ~~Accessing new containers~~
 ~~As you bring up new containers or restart them you will need to get dnsmasq to reload the docker container DNS files that were created by docker-gen. You can do this by restarting Network Manager with~~
